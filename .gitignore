@@ -6,3 +6,10 @@ faiss_index
 __pycache__
 
 frontend/node_modules
+
+
+backend/venv
+backend/env
+backend/__pycache__
+backend/faiss_index
+backend/.env
