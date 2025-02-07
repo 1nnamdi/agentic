@@ -1,15 +1,44 @@
-# agentic
-Using Pipecat for LLM based RAG in a conversational system
-
+# Agentic
+This application is a RAG applications. User specifies a url and the application crawls it, store the text in a vector store (Chroma) and user can just chat with the system about the document. The project aims at giving a user the posibility to have a natural vioce to voice conversation with the provided document in the url.
 
 # Requirements
-- Python 3.10+
-- clone the repo and install the requirements using pip
+- Python 3.12
+- Docker
+- Docer-compose
+
+# Installation
+
+```bash
+ git clone https://github.com/85nnamdi/agentic.git
+ cd agentic/backend/
+ ```
+- create a .env file
+ ```nano .env``` or ```sudo nano .env```
+- copy your OPEN API key into .env
+ ```OPENAI_API_KEY=Get API key from OpenAI API page ```
+ ```bash
+ cd ..
+ docker-compose up --build -d
+  ```
+- open in browser at **localhost:3000**
+
+
+
+# Testing the backend
+The backend is a FastAPI backend. Therefore we can immediately use swagger documentation. via  ```localhost:8000/docs ```
 
 # Usage
+- First thing you need to do is provide the url to crawl and then you can ask your questions.
+
+
+# .env content
 - setup environment variables in .env file
+These keys provide us with the posibility to have a natural vioce to voice conversation with the provided document.
+```bash
 OPENAI_API_KEY=Get API key from OpenAI API page
 DAILY_SAMPLE_ROOM_URL="https://nnamdi.daily.co/philipp" # replace with your daily room URL from daily.co
 DAILY_API_KEY="your_daily_api_key" # replace with your daily API key navigate to https://dashboard.daily.co/ to get it
-CARTESIA_API_KEY="sk_car_l0betDRK3g5lwjkcAXSw_" # replace with your cartesia API key from https://play.cartesia.ai/keys
-CARTESIA_VOICE_ID="729651dc-c6c3-4ee5-97fa-350da1f88600" # replace with your cartesia voice ID from https://play.cartesia.ai/voices/
+CARTESIA_API_KEY="" # replace with your cartesia API key from https://play.cartesia.ai/keys
+CARTESIA_VOICE_ID="-" # replace with your cartesia voice ID from https://play.cartesia.ai/voices/
+```
+
