@@ -4,7 +4,7 @@ import './App.css'
 function App() {
   const [question, setQuestion] = useState('')
   const [answer, setAnswer] = useState([
-    { role: 'assistant', content: 'Hello! How can I help you today?' }
+    { role: 'assistant', content: 'Hello! To start using this app, you need to enter a url to get started.' }
   ]);
 
 
