@@ -77,7 +77,6 @@ async def ask_question(question: str):
 
     # Process the question
     answer = qa_chain.invoke({"query": question})
-
     await task.queue_frames([
         TextFrame(answer),
         EndFrame()

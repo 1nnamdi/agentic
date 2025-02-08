@@ -10,12 +10,14 @@ function App() {
 
   const [url, setUrl] = useState('')
 
+  const API_BASE_URL = process.env.REACT_APP_API_BASE || 'http://16.171.200.180';
+
   const handleQA = async (e) => {
     e.preventDefault();
     if (!question.trim()) return;
 
     try {
-      const response = await fetch(`http://localhost:8000/ask?question=${encodeURIComponent(question)}`, {
+        const response = await fetch(`${API_BASE_URL}:8000/ask?question=${encodeURIComponent(question)}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -50,7 +52,7 @@ function App() {
     if (!url.trim()) return;
 
     try {
-      const response = await fetch('http://localhost:8000/crawl', {
+      const response = await fetch(`${API_BASE_URL}:8000/crawl`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

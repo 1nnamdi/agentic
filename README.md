@@ -23,9 +23,14 @@ This application is a RAG applications. User specifies a url and the application
 - open in browser at **localhost:3000**
 
 
+# Remote url
+The application is currently running on [http://16.171.200.180/](http://16.171.200.180/) or [http://13.60.174.43/](http://13.60.174.43/).
 
-# Testing the backend
-The backend is a FastAPI backend. Therefore we can immediately use swagger documentation. via  ```localhost:8000/docs ```
+# Testing locally
+## Backend
+The backend is a FastAPI backend. Therefore we can immediately use swagger documentation. via  [localhost:8000/docs ](localhost:8000/docs)
+## Frontend
+The frontend is a Reactjs App and is runs on [localhost:3000](localhost:3000)
 
 # Usage
 - First thing you need to do is provide the url to crawl and then you can ask your questions.
