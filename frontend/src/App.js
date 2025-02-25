@@ -1,54 +1,48 @@
 import { useState } from 'react'
+import { FaSearch, FaCode, FaPaintBrush, FaFileAlt, FaLink, FaPhone } from 'react-icons/fa'
 import './App.css'
 
 function App() {
+  
   const [question, setQuestion] = useState('')
   const [answer, setAnswer] = useState([
     { role: 'assistant', content: 'Hello! To start using this app, you need to enter a url to get started.' }
   ]);
-
-
   const [url, setUrl] = useState('')
+  const [activeMode, setActiveMode] = useState('chat')
 
-  const API_BASE_URL = process.env.REACT_APP_API_BASE || 'http://16.171.200.180';
+  const API_BASE_URL = process.env.REACT_APP_API_BASE; //|| 'http://16.171.200.180';
 
-  const handleQA = async (e) => {
-    e.preventDefault();
-    if (!question.trim()) return;
 
-    try {
-        const response = await fetch(`${API_BASE_URL}:8000/ask?question=${encodeURIComponent(question)}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    if (!question.trim()) return
 
-      if (!response.ok) {
-        throw new Error('Failed to get an answer');
-      }
-
-      const data = await response.json();
-      const newMessages = [
-        ...answer,
-        { role: 'user', content: question },
-        { role: 'assistant', content: data.answer }
-      ];
-      setAnswer(newMessages);
-    } catch (error) {
-      const newMessages = [
-        ...answer,
-        { role: 'user', content: question },
-        { role: 'assistant', content: `Error: ${error.message}` }
-      ];
-      setAnswer(newMessages);
+    if (activeMode === 'web-search') {
+      handleWebSearch(url)
+    } else { 
+      handleQA(question)
     }
+    setQuestion('')
+  }
 
-    setQuestion('');
-  };
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      handleSubmit(e)
+    }
+  }
 
-  const handleCrawl = async (e) => {
-    e.preventDefault();
+  const handleWebSearch = (searchUrl) => {
+    if (!searchUrl.startsWith('http://') && !searchUrl.startsWith('https://')) {
+      searchUrl = `https://${searchUrl}`
+    }
+    handleCrawl(searchUrl)
+  }
+
+  const handleCrawl = async () => {
+    console.log(url)
+    //e.preventDefault();
     if (!url.trim()) return;
 
     try {
@@ -83,20 +77,62 @@ function App() {
     setUrl('');
   };
 
+  const handleQA = async (e) => {
+   
+    //e.preventDefault();
+    if (!question.trim()) return;
+
+    try {
+      
+        const response = await fetch(`${API_BASE_URL}:8000/ask?question=${encodeURIComponent(question)}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to get an answer');
+      }
+
+      const data = await response.json();
+      const newMessages = [
+        ...answer,
+        { role: 'user', content: question },
+        { role: 'assistant', content: data.answer }
+      ];
+      setAnswer(newMessages);
+    } catch (error) {
+      const newMessages = [
+        ...answer,
+        { role: 'user', content: question },
+        { role: 'assistant', content: `Error: ${error.message}` }
+      ];
+      setAnswer(newMessages);
+    }
+
+    setQuestion('');
+  };
+
+
+  const handleCall = () => {
+    const newMessages = [
+      ...answer,
+      { role: 'system', content: 'Initiating voice call...' }
+    ]
+    setAnswer(newMessages)
+  }
+
+  const tools = [
+    { id: 'canvas', icon: FaFileAlt, label: 'Canvas' },
+    { id: 'web-search', icon: FaSearch, label: 'Web search' },
+    { id: 'image', icon: FaPaintBrush, label: 'Image generation' },
+    { id: 'code', icon: FaCode, label: 'Code Interpreter' }
+  ]
+
   return (
     <div className="chat-container">
-      <form onSubmit={handleCrawl} className="url-form">
-        <input
-          type="url"
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          placeholder="Enter URL to crawl..."
-          className="url-input"
-        />
-        <button type="submit" className="crawl-button">
-          Crawl
-        </button>
-      </form>
+     
       
       <div className="chat-messages">
         {answer.map((message, index) => (
@@ -111,18 +147,54 @@ function App() {
         ))}
       </div>
       
-      <form onSubmit={handleQA} className="input-form">
-        <input
-          type="text"
-          value={question}
-          onChange={(e) => setQuestion(e.target.value)}
-          placeholder="Type your message here..."
-          className="chat-input"
-        />
-        <button type="submit" className="send-button">
-          Send
-        </button>
-      </form>
+      <div className="input-container">
+        <form onSubmit={handleSubmit} className="input-form">
+          <div className="input-wrapper">
+            <textarea
+              value={question}
+              onChange={(e) => {
+                if (activeMode === 'web-search') {
+                  setUrl(e.target.value)
+                } else {
+                  setQuestion(e.target.value)
+                }
+              }}
+              onKeyDown={handleKeyDown}
+              placeholder={activeMode === 'web-search' ? 'Enter a URL to search...' : 'Ask a question...'}
+              className="chat-input"
+              rows={3}
+            />
+            <button type="submit" className="send-button">
+              {activeMode === 'web-search' ? 'Search' : 'Send'}
+            </button>
+            <button 
+              type="button" 
+              onClick={handleCall}
+              className="call-button"
+              title="Start voice call"
+            >
+              <FaPhone />
+            </button>
+          </div>
+        </form>
+        
+        <div className="tools-container">
+          {tools.map((tool) => {
+            const Icon = tool.icon
+            return (
+              <button
+                key={tool.id}
+                type="button"
+                className={`tool-button ${activeMode === tool.id ? 'active' : ''}`}
+                onClick={() => setActiveMode(activeMode === tool.id ? 'chat':tool.id)}
+                title={tool.label}
+              >
+                <Icon />
+              </button>
+            )
+          })}
+        </div>
+      </div>
     </div>
   )
 }
