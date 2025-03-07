@@ -1,9 +1,8 @@
-import { useState } from 'react'
-import { FaSearch, FaCode, FaPaintBrush, FaFileAlt, FaLink, FaPhone } from 'react-icons/fa'
+import { useState, useRef, useEffect } from 'react'
+import { FaSearch, FaCode, FaPaintBrush, FaFileAlt, FaLink, FaPhone, FaArrowDown } from 'react-icons/fa'
 import './App.css'
 
 function App() {
-  
   const [question, setQuestion] = useState('')
   const [answer, setAnswer] = useState([
     { role: 'assistant', content: 'Hello! To start using this app, you need to enter a url to get started.' }
@@ -11,20 +10,51 @@ function App() {
   const [url, setUrl] = useState('')
   const [activeMode, setActiveMode] = useState('chat')
 
-  const API_BASE_URL = process.env.REACT_APP_API_BASE; //|| 'http://16.171.200.180';
+  const API_BASE_URL = process.env.REACT_APP_API_BASE;
 
+  const [showScrollButton, setShowScrollButton] = useState(false)
+  const messagesEndRef = useRef(null)
+  const chatMessagesRef = useRef(null)
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }
+
+  const handleScroll = () => {
+    if (!chatMessagesRef.current) return
+    
+    const { scrollTop, scrollHeight, clientHeight } = chatMessagesRef.current
+    const isScrolledUp = scrollHeight - scrollTop - clientHeight > 100
+    setShowScrollButton(isScrolledUp)
+  }
+
+  useEffect(() => {
+    const chatMessages = chatMessagesRef.current
+    if (chatMessages) {
+      chatMessages.addEventListener('scroll', handleScroll)
+      return () => chatMessages.removeEventListener('scroll', handleScroll)
+    }
+  }, [])
+
+  useEffect(() => {
+    scrollToBottom()
+  }, [answer])
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    if (!question.trim()) return
+    //if (!question.trim() || !url.trim()) return
 
     if (activeMode === 'web-search') {
-      handleWebSearch(url)
-    } else { 
+      handleWebSearch(url);
+      setUrl('');
+    } else {
       handleQA(question)
+      setQuestion('');
     }
-    setQuestion('')
+   
+    
   }
+
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -41,7 +71,6 @@ function App() {
   }
 
   const handleCrawl = async () => {
-    console.log(url)
     //e.preventDefault();
     if (!url.trim()) return;
 
@@ -77,6 +106,13 @@ function App() {
     setUrl('');
   };
 
+  const handleCall = () => {
+    const newMessages = [
+      ...answer,
+      { role: 'system', content: 'Initiating voice call...' }
+    ]
+    setAnswer(newMessages)
+  }
   const handleQA = async (e) => {
    
     //e.preventDefault();
@@ -114,17 +150,8 @@ function App() {
     setQuestion('');
   };
 
-
-  const handleCall = () => {
-    const newMessages = [
-      ...answer,
-      { role: 'system', content: 'Initiating voice call...' }
-    ]
-    setAnswer(newMessages)
-  }
-
   const tools = [
-    { id: 'canvas', icon: FaFileAlt, label: 'Canvas' },
+    { id: 'document', icon: FaFileAlt, label: 'Document chat' },
     { id: 'web-search', icon: FaSearch, label: 'Web search' },
     { id: 'image', icon: FaPaintBrush, label: 'Image generation' },
     { id: 'code', icon: FaCode, label: 'Code Interpreter' }
@@ -132,9 +159,11 @@ function App() {
 
   return (
     <div className="chat-container">
-     
+      {/* {activeMode === 'web-search' && (
+        setUrl(e.target.value)
+      )} */}
       
-      <div className="chat-messages">
+      <div className="chat-messages" ref={chatMessagesRef}>
         {answer.map((message, index) => (
           <div
             key={index}
@@ -145,18 +174,25 @@ function App() {
             </div>
           </div>
         ))}
+        <div ref={messagesEndRef} />
+        {showScrollButton && (
+          <button onClick={scrollToBottom} className="scroll-bottom-button">
+            <FaArrowDown />
+          </button>
+        )}
       </div>
       
       <div className="input-container">
         <form onSubmit={handleSubmit} className="input-form">
           <div className="input-wrapper">
             <textarea
-              value={question}
+              type="url"
+              value={activeMode === 'web-search' ? url : question}
               onChange={(e) => {
                 if (activeMode === 'web-search') {
-                  setUrl(e.target.value)
+                  setUrl(e.target.value);
                 } else {
-                  setQuestion(e.target.value)
+                  setQuestion(e.target.value);          
                 }
               }}
               onKeyDown={handleKeyDown}
@@ -164,6 +200,8 @@ function App() {
               className="chat-input"
               rows={3}
             />
+
+            
             <button type="submit" className="send-button">
               {activeMode === 'web-search' ? 'Search' : 'Send'}
             </button>
@@ -187,6 +225,7 @@ function App() {
                 type="button"
                 className={`tool-button ${activeMode === tool.id ? 'active' : ''}`}
                 onClick={() => setActiveMode(activeMode === tool.id ? 'chat':tool.id)}
+                
                 title={tool.label}
               >
                 <Icon />
