@@ -3,7 +3,8 @@ python-dotenv
 fastapi
 uvicorn
 beautifulsoup4
-pipecat-ai
+pipecat-ai>=0.0.58
+websockets>=15.0.0
 langchain-openai
 langchain-community
 langchain

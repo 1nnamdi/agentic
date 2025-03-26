@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { FaSearch, FaCode, FaPaintBrush, FaFileAlt, FaLink, FaPhone, FaArrowDown } from 'react-icons/fa'
+import { FaSearch, FaCode, FaPaintBrush, FaFileAlt, FaLink, FaPhone, FaArrowDown, FaMicrophone, FaStop } from 'react-icons/fa'
 import './App.css'
 
 function App() {
@@ -9,6 +9,16 @@ function App() {
   ]);
   const [url, setUrl] = useState('')
   const [activeMode, setActiveMode] = useState('chat')
+  
+  // Voice chat state
+  const [isRecording, setIsRecording] = useState(false)
+  const [isProcessing, setIsProcessing] = useState(false)
+  const [transcript, setTranscript] = useState('')
+  const [isPlaying, setIsPlaying] = useState(false)
+  const mediaRecorderRef = useRef(null)
+  const websocketRef = useRef(null)
+  const audioChunksRef = useRef([])
+  const audioContextRef = useRef(null)
 
   const API_BASE_URL = process.env.REACT_APP_API_BASE;
 
@@ -39,6 +49,26 @@ function App() {
   useEffect(() => {
     scrollToBottom()
   }, [answer])
+  
+  // Clean up WebSocket and audio resources when component unmounts
+  useEffect(() => {
+    return () => {
+      // Close WebSocket connection
+      if (websocketRef.current) {
+        websocketRef.current.close()
+      }
+      
+      // Stop recording if active
+      if (mediaRecorderRef.current && isRecording) {
+        mediaRecorderRef.current.stop()
+      }
+      
+      // Close audio context
+      if (audioContextRef.current) {
+        audioContextRef.current.close()
+      }
+    }
+  }, [])
 
   const handleSubmit = (e) => {
     e.preventDefault()
@@ -106,12 +136,157 @@ function App() {
     setUrl('');
   };
 
+  // Initialize WebSocket connection
+  const initializeWebSocket = () => {
+    // Close any existing connection
+    if (websocketRef.current) {
+      websocketRef.current.close()
+    }
+
+    // Create new WebSocket connection
+    const wsUrl = `ws://${API_BASE_URL.replace('http://', '')}:8000/voice-chat`
+    websocketRef.current = new WebSocket(wsUrl)
+
+    // Set up event handlers
+    websocketRef.current.onopen = () => {
+      console.log('WebSocket connection established')
+    }
+
+    websocketRef.current.onmessage = async (event) => {
+      try {
+        // Handle text messages (JSON)
+        if (typeof event.data === 'string') {
+          const data = JSON.parse(event.data)
+          
+          if (data.status === 'ready') {
+            // Server is ready to receive audio
+            if (audioChunksRef.current.length > 0) {
+              const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
+              websocketRef.current.send(await audioBlob.arrayBuffer())
+              setIsProcessing(true)
+            }
+          } 
+          else if (data.type === 'transcription') {
+            // Update transcript and add user message
+            setTranscript(data.text)
+            const newMessages = [
+              ...answer,
+              { role: 'user', content: data.text }
+            ]
+            setAnswer(newMessages)
+            setIsProcessing(true)
+          } 
+          else if (data.type === 'response') {
+            // Add assistant response message
+            const newMessages = [
+              ...answer,
+              { role: 'user', content: transcript },
+              { role: 'assistant', content: data.text }
+            ]
+            setAnswer(newMessages)
+          }
+        } 
+        // Handle binary messages (audio)
+        else if (event.data instanceof Blob) {
+          setIsPlaying(true)
+          
+          // Play audio response
+          if (!audioContextRef.current) {
+            audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)()
+          }
+          
+          const arrayBuffer = await event.data.arrayBuffer()
+          const audioBuffer = await audioContextRef.current.decodeAudioData(arrayBuffer)
+          
+          const source = audioContextRef.current.createBufferSource()
+          source.buffer = audioBuffer
+          source.connect(audioContextRef.current.destination)
+          
+          source.onended = () => {
+            setIsPlaying(false)
+            setIsProcessing(false)
+            
+            // Tell server we're done playing audio
+            websocketRef.current.send(JSON.stringify({ status: 'complete' }))
+          }
+          
+          source.start(0)
+        }
+      } catch (error) {
+        console.error('Error processing message:', error)
+        setIsProcessing(false)
+      }
+    }
+
+    websocketRef.current.onerror = (error) => {
+      console.error('WebSocket error:', error)
+      setIsRecording(false)
+      setIsProcessing(false)
+    }
+
+    websocketRef.current.onclose = () => {
+      console.log('WebSocket connection closed')
+      setIsRecording(false)
+      setIsProcessing(false)
+    }
+  }
+
+  // Start recording audio
+  const startRecording = async () => {
+    try {
+      // Initialize WebSocket
+      initializeWebSocket()
+      
+      // Reset state
+      audioChunksRef.current = []
+      setTranscript('')
+      setIsRecording(true)
+      
+      // Request microphone access
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      
+      // Create and configure MediaRecorder
+      mediaRecorderRef.current = new MediaRecorder(stream)
+      
+      mediaRecorderRef.current.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data)
+        }
+      }
+      
+      mediaRecorderRef.current.onstop = () => {
+        // Stop all tracks in the stream
+        stream.getTracks().forEach(track => track.stop())
+        
+        // If WebSocket is ready, send the audio data
+        if (websocketRef.current && websocketRef.current.readyState === WebSocket.OPEN) {
+          const newMessage = { role: 'system', content: 'Processing audio...' }
+          setAnswer(prev => [...prev, newMessage])
+        }
+      }
+      
+      // Start recording
+      mediaRecorderRef.current.start(100) // Collect data in 100ms chunks
+    } catch (error) {
+      console.error('Error starting recording:', error)
+      setIsRecording(false)
+    }
+  }
+
+  // Stop recording audio
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop()
+      setIsRecording(false)
+    }
+  }
+
   const handleCall = () => {
-    const newMessages = [
-      ...answer,
-      { role: 'system', content: 'Initiating voice call...' }
-    ]
-    setAnswer(newMessages)
+    if (isRecording) {
+      stopRecording()
+    } else {
+      startRecording()
+    }
   }
   const handleQA = async (e) => {
    
@@ -208,10 +383,11 @@ function App() {
             <button 
               type="button" 
               onClick={handleCall}
-              className="call-button"
-              title="Start voice call"
+              className={`call-button ${isRecording ? 'recording' : ''} ${isProcessing ? 'processing' : ''}`}
+              title={isRecording ? "Stop recording" : "Start voice recording"}
+              disabled={isProcessing || isPlaying}
             >
-              <FaPhone />
+              {isRecording ? <FaStop /> : <FaMicrophone />}
             </button>
           </div>
         </form>

@@ -129,17 +129,55 @@
   border: none;
   color: #059669;
   cursor: pointer;
-  transition: color 0.2s;
+  transition: all 0.3s ease;
   padding: 0.5rem;
+  border-radius: 50%;
+  width: 2.5rem;
+  height: 2.5rem;
 }
 
 .call-button:hover {
   color: #047857;
+  background-color: rgba(5, 150, 105, 0.1);
+}
+
+.call-button.recording {
+  color: #ef4444;
+  animation: pulse 1.5s infinite;
+}
+
+.call-button.recording:hover {
+  color: #dc2626;
+  background-color: rgba(239, 68, 68, 0.1);
+}
+
+.call-button.processing {
+  color: #2563eb;
+}
+
+.call-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .call-button svg {
   width: 1.25rem;
   height: 1.25rem;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5);
+  }
+  70% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
 }
 
 .send-button {
