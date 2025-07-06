@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { FaSearch, FaCode, FaPaintBrush, FaFileAlt, FaLink, FaPhone, FaArrowDown, FaMicrophone, FaStop } from 'react-icons/fa'
 import './App.css'
+import Axios from 'axios'
 
 function App() {
   const [question, setQuestion] = useState('')
@@ -19,6 +20,8 @@ function App() {
   const websocketRef = useRef(null)
   const audioChunksRef = useRef([])
   const audioContextRef = useRef(null)
+  const [loading, setLoading] = useState(false);
+
 
   const API_BASE_URL = process.env.REACT_APP_API_BASE;
 
@@ -83,6 +86,28 @@ function App() {
     }
    
     
+  }
+
+  const handleImageGeneration = async (e) => {
+    const reader = new FileReader();
+    try {
+      setLoading(true);
+      // Fetch the image as a blob
+      const response = await Axios.post(
+        `${process.env.REACT_APP_API_BASE}/serverless-image-generation/`,
+        { prompt },
+        { responseType: 'blob' } // Ensure response is received as blob
+      );
+      setLoading(false);
+      // Convert blob to base64 data URL
+      reader.readAsDataURL(response.data);
+      reader.onloadend = () => {
+        setGeneratedImage(reader.result); // Set the base64 URL as image source
+      };
+   
+    } catch (error) {
+      console.error("Image generation failed:", error);
+    }
   }
 
 

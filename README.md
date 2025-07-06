@@ -47,3 +47,8 @@ CARTESIA_API_KEY="" # replace with your cartesia API key from https://play.carte
 CARTESIA_VOICE_ID="-" # replace with your cartesia voice ID from https://play.cartesia.ai/voices/
 ```
 
+# Stack
+- Ollama for running LLMS like Gamma 3 locally.
+- Whisper for speech-to-text trascription
+- Orpheus for high-quality text-to-speech synthesis
+
